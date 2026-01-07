@@ -1,10 +1,23 @@
 'use client';
 
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useCallback, useRef, useState } from 'react';
 import { LabelData } from '@/types/label';
+import { Hand } from 'lucide-react';
 
 interface MuseumLabelProps {
   data: LabelData;
+  onChange?: (data: LabelData) => void;
+  isExporting?: boolean;
+}
+
+interface DragState {
+  isDragging: boolean;
+  startX: number;
+  startY: number;
+  startOffsetX: number;
+  startOffsetY: number;
+  initialDistance: number;
+  initialScale: number;
 }
 
 // L字型のコーナー装飾コンポーネント
@@ -22,9 +35,116 @@ const CornerDecoration = ({ position }: { position: 'top-left' | 'top-right' | '
   return <div className={`${baseClasses} ${positionClasses[position]} ${lineColor}`} />;
 };
 
-const MuseumLabel = forwardRef<HTMLDivElement, MuseumLabelProps>(({ data }, ref) => {
+const MuseumLabel = forwardRef<HTMLDivElement, MuseumLabelProps>(({ data, onChange, isExporting = false }, ref) => {
   const hasContent = data.title || data.description || data.author || data.year || data.image;
   const hasInfo = data.title || data.author || data.year;
+  
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const [dragState, setDragState] = useState<DragState>({
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    startOffsetX: 0,
+    startOffsetY: 0,
+    initialDistance: 0,
+    initialScale: 1,
+  });
+
+  // 距離計算（ピンチズーム用）
+  const getDistance = (touch1: React.Touch, touch2: React.Touch) => {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // ドラッグ開始
+  const handleDragStart = useCallback((clientX: number, clientY: number) => {
+    if (!onChange) return;
+    setDragState(prev => ({
+      ...prev,
+      isDragging: true,
+      startX: clientX,
+      startY: clientY,
+      startOffsetX: data.imageAdjustment.offsetX,
+      startOffsetY: data.imageAdjustment.offsetY,
+    }));
+  }, [onChange, data.imageAdjustment]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!onChange) return;
+    if (e.touches.length === 1) {
+      handleDragStart(e.touches[0].clientX, e.touches[0].clientY);
+    } else if (e.touches.length === 2) {
+      const distance = getDistance(e.touches[0], e.touches[1]);
+      setDragState(prev => ({
+        ...prev,
+        isDragging: false,
+        initialDistance: distance,
+        initialScale: data.imageAdjustment.scale,
+      }));
+    }
+  }, [onChange, data.imageAdjustment, handleDragStart]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    handleDragStart(e.clientX, e.clientY);
+  }, [handleDragStart]);
+
+  // ドラッグ移動
+  const handleMove = useCallback((clientX: number, clientY: number) => {
+    if (!onChange || !imageContainerRef.current) return;
+    
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const deltaX = ((clientX - dragState.startX) / rect.width) * 100;
+    const deltaY = ((clientY - dragState.startY) / rect.height) * 100;
+
+    const newOffsetX = Math.max(-50, Math.min(50, dragState.startOffsetX + deltaX));
+    const newOffsetY = Math.max(-50, Math.min(50, dragState.startOffsetY + deltaY));
+
+    onChange({
+      ...data,
+      imageAdjustment: {
+        ...data.imageAdjustment,
+        offsetX: Math.round(newOffsetX),
+        offsetY: Math.round(newOffsetY),
+      }
+    });
+  }, [onChange, data, dragState]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!onChange) return;
+    e.preventDefault();
+    
+    if (e.touches.length === 1 && dragState.isDragging) {
+      handleMove(e.touches[0].clientX, e.touches[0].clientY);
+    } else if (e.touches.length === 2 && dragState.initialDistance > 0) {
+      const distance = getDistance(e.touches[0], e.touches[1]);
+      const scaleRatio = distance / dragState.initialDistance;
+      const newScale = Math.max(1, Math.min(2, dragState.initialScale * scaleRatio));
+
+      onChange({
+        ...data,
+        imageAdjustment: {
+          ...data.imageAdjustment,
+          scale: Math.round(newScale * 20) / 20,
+        }
+      });
+    }
+  }, [onChange, data, dragState, handleMove]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (dragState.isDragging) {
+      e.preventDefault();
+      handleMove(e.clientX, e.clientY);
+    }
+  }, [dragState.isDragging, handleMove]);
+
+  const handleDragEnd = useCallback(() => {
+    setDragState(prev => ({
+      ...prev,
+      isDragging: false,
+      initialDistance: 0,
+    }));
+  }, []);
 
   return (
     <div 
@@ -148,24 +268,44 @@ const MuseumLabel = forwardRef<HTMLDivElement, MuseumLabelProps>(({ data }, ref)
                     >
                       {/* マット（余白）- ベルベット風 */}
                       <div 
-                        className="relative p-2 md:p-3"
+                        className="relative p-2 md:p-3 overflow-hidden"
                         style={{
                           background: 'linear-gradient(145deg, #f5f5f0 0%, #e8e6e0 100%)',
                           boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.15)',
                         }}
                       >
-                        {/* 画像本体 - clipで切り取り */}
-                        <div className="relative w-full overflow-hidden" style={{ maxHeight: '24rem' }}>
+                        {/* 画像本体 - ドラッグ/ピンチ操作対応 */}
+                        <div 
+                          ref={imageContainerRef}
+                          className={`relative w-full flex items-center justify-center overflow-hidden ${onChange && !isExporting ? 'touch-none cursor-grab active:cursor-grabbing' : ''}`}
+                          style={{ minHeight: '200px', maxHeight: '24rem' }}
+                          onTouchStart={onChange ? handleTouchStart : undefined}
+                          onTouchMove={onChange ? handleTouchMove : undefined}
+                          onTouchEnd={onChange ? handleDragEnd : undefined}
+                          onMouseDown={onChange ? handleMouseDown : undefined}
+                          onMouseMove={onChange ? handleMouseMove : undefined}
+                          onMouseUp={onChange ? handleDragEnd : undefined}
+                          onMouseLeave={onChange ? handleDragEnd : undefined}
+                        >
                           <img
                             src={data.image}
                             alt={data.title || '作品画像'}
-                            className="w-full h-auto block"
+                            className="max-w-full max-h-96 w-auto h-auto block pointer-events-none select-none object-contain"
                             style={{
                               boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                              transform: `scale(${data.imageAdjustment.scale})`,
-                              transformOrigin: `${50 - data.imageAdjustment.offsetX}% ${50 - data.imageAdjustment.offsetY}%`,
+                              transform: `translate(${data.imageAdjustment.offsetX}%, ${data.imageAdjustment.offsetY}%) scale(${data.imageAdjustment.scale})`,
                             }}
+                            draggable={false}
                           />
+                          {/* 操作ヒント（エクスポート時は非表示） */}
+                          {onChange && !isExporting && (
+                            <div className="absolute bottom-2 left-2 right-2 pointer-events-none">
+                              <div className="flex items-center justify-center gap-1.5 bg-black/50 text-white text-xs px-2 py-1 rounded-full w-fit mx-auto">
+                                <Hand size={12} />
+                                <span>ドラッグで移動・ピンチで拡大</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

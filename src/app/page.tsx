@@ -1,32 +1,42 @@
 'use client';
 
 import React, { useState, useRef, useCallback } from 'react';
-import { Download, RotateCcw, Loader2 } from 'lucide-react';
+import { RotateCcw, Maximize2 } from 'lucide-react';
 import InputForm from '@/components/InputForm';
 import MuseumLabel from '@/components/MuseumLabel';
 import { LabelData, defaultLabelData } from '@/types/label';
-import { exportToPng, sanitizeFilename } from '@/utils/export';
 
 export default function Home() {
   const [data, setData] = useState<LabelData>(defaultLabelData);
-  const [isExporting, setIsExporting] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const labelRef = useRef<HTMLDivElement>(null);
+  const fullscreenContainerRef = useRef<HTMLDivElement>(null);
 
-  // 画像をPNGとしてダウンロード
-  const handleExport = useCallback(async () => {
-    if (!labelRef.current || isExporting) return;
-
-    setIsExporting(true);
+  // 全画面表示
+  const handleFullscreen = useCallback(async () => {
+    if (!fullscreenContainerRef.current) return;
+    
     try {
-      const filename = sanitizeFilename(data.title || '作品');
-      await exportToPng(labelRef.current, { filename, pixelRatio: 2 });
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await fullscreenContainerRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      }
     } catch (error) {
-      console.error('Export failed:', error);
-      alert('画像の書き出しに失敗しました');
-    } finally {
-      setIsExporting(false);
+      console.error('Fullscreen failed:', error);
+      alert('全画面表示に失敗しました');
     }
-  }, [data.title, isExporting]);
+  }, []);
+
+  // 全画面終了を監視
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   // リセット
   const handleReset = useCallback(() => {
@@ -72,23 +82,14 @@ export default function Home() {
               <InputForm data={data} onChange={setData} />
               
               {/* アクションボタン */}
-              <div className="mt-8 space-y-3">
+              <div className="mt-8">
                 <button
-                  onClick={handleExport}
-                  disabled={!hasContent || isExporting}
+                  onClick={handleFullscreen}
+                  disabled={!hasContent}
                   className="btn-primary w-full"
                 >
-                  {isExporting ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" />
-                      書き出し中...
-                    </>
-                  ) : (
-                    <>
-                      <Download size={18} />
-                      画像を保存する
-                    </>
-                  )}
+                  <Maximize2 size={18} />
+                  全画面で表示（スクショ保存用）
                 </button>
               </div>
             </div>
@@ -100,11 +101,30 @@ export default function Home() {
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-sm font-medium text-museum-muted">プレビュー</h2>
                 <span className="text-xs text-museum-muted">
-                  リアルタイムで反映されます
+                  {data.image ? '画像をドラッグ/ピンチで調整可能' : 'リアルタイムで反映されます'}
                 </span>
               </div>
-              <div className="rounded-lg overflow-hidden shadow-lg">
-                <MuseumLabel ref={labelRef} data={data} />
+              
+              {/* 全画面表示用コンテナ */}
+              <div 
+                ref={fullscreenContainerRef}
+                className={`rounded-lg overflow-hidden shadow-lg ${isFullscreen ? 'flex items-center justify-center bg-stone-800' : ''}`}
+              >
+                {/* 全画面時の案内 */}
+                {isFullscreen && (
+                  <div className="absolute top-4 left-0 right-0 text-center z-50 pointer-events-none">
+                    <p className="inline-block bg-black/70 text-white text-sm px-4 py-2 rounded-full">
+                      スクリーンショットで保存してください（ESCで終了）
+                    </p>
+                  </div>
+                )}
+                
+                <MuseumLabel 
+                  ref={labelRef} 
+                  data={data} 
+                  onChange={isFullscreen ? undefined : setData}
+                  isExporting={isFullscreen}
+                />
               </div>
             </div>
           </div>
