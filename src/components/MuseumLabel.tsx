@@ -148,7 +148,7 @@ const MuseumLabel = forwardRef<HTMLDivElement, MuseumLabelProps>(({ data }, ref)
                     >
                       {/* マット（余白）- ベルベット風 */}
                       <div 
-                        className="relative p-4 md:p-6"
+                        className="relative p-2 md:p-3 overflow-hidden"
                         style={{
                           background: 'linear-gradient(145deg, #f5f5f0 0%, #e8e6e0 100%)',
                           boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.15)',
@@ -158,9 +158,10 @@ const MuseumLabel = forwardRef<HTMLDivElement, MuseumLabelProps>(({ data }, ref)
                         <img
                           src={data.image}
                           alt={data.title || '作品画像'}
-                          className="w-full h-auto object-contain max-h-72 md:max-h-96 block relative z-10"
+                          className="w-full h-auto object-cover max-h-72 md:max-h-96 block relative z-10"
                           style={{
                             boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                            transform: `scale(${data.imageAdjustment.scale}) translate(${data.imageAdjustment.offsetX}%, ${data.imageAdjustment.offsetY}%)`,
                           }}
                         />
                       </div>
@@ -222,37 +223,59 @@ const MuseumLabel = forwardRef<HTMLDivElement, MuseumLabelProps>(({ data }, ref)
 
               {/* コンテンツエリア */}
               <div className="relative z-10 flex flex-row min-h-[60px]">
-                {/* 左側：作品情報（常に50%） */}
-                <div className="w-1/2 px-4 py-3 border-r border-stone-200/60 flex items-center justify-center">
-                  <div className="space-y-0.5 text-center w-full">
-                    {/* 作品名 */}
-                    <h1 className="font-serif text-sm font-semibold text-stone-800 
-                                  tracking-wide leading-tight line-clamp-2">
-                      {data.title || '無題'}
-                    </h1>
+                {data.description ? (
+                  <>
+                    {/* 左側：作品情報（50%） */}
+                    <div className="w-1/2 px-4 py-3 border-r border-stone-200/60 flex items-center justify-center">
+                      <div className="space-y-0.5 text-center w-full">
+                        {/* 作品名 */}
+                        <h1 className="font-serif text-sm font-semibold text-stone-800 
+                                      tracking-wide leading-tight line-clamp-2">
+                          {data.title || '無題'}
+                        </h1>
 
-                    {/* 作者 */}
-                    {data.author && (
-                      <p className="text-stone-600 text-xs truncate">
-                        {data.author}
-                      </p>
-                    )}
+                        {/* 作者 */}
+                        {data.author && (
+                          <p className="text-stone-600 text-xs truncate">
+                            {data.author}
+                          </p>
+                        )}
 
-                    {/* 制作年 */}
-                    {data.year && (
-                      <p className="text-stone-400 text-xs">
-                        {data.year}
+                        {/* 制作年 */}
+                        {data.year && (
+                          <p className="text-stone-400 text-xs">
+                            {data.year}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 右側：説明文（50%） */}
+                    <div className="w-1/2 px-4 py-3 flex items-center">
+                      <p className="text-stone-500 text-xs leading-relaxed line-clamp-4">
+                        {data.description}
                       </p>
-                    )}
+                    </div>
+                  </>
+                ) : (
+                  /* 説明文なし：中央に作品情報のみ */
+                  <div className="w-full px-6 py-3 flex items-center justify-center">
+                    <div className="space-y-0.5 text-center">
+                      {/* 作品名 */}
+                      <h1 className="font-serif text-sm font-semibold text-stone-800 
+                                    tracking-wide leading-tight">
+                        {data.title || '無題'}
+                      </h1>
+
+                      {/* 作者と制作年 */}
+                      {(data.author || data.year) && (
+                        <p className="text-stone-500 text-xs">
+                          {data.author}{data.author && data.year && ' · '}{data.year}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-
-                {/* 右側：説明文（常に50%） */}
-                <div className="w-1/2 px-4 py-3 flex items-center">
-                  <p className="text-stone-500 text-xs leading-relaxed line-clamp-4">
-                    {data.description || ''}
-                  </p>
-                </div>
+                )}
               </div>
 
               {/* プレート下部のシャドウ（厚み感） */}
