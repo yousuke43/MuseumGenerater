@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useCallback } from 'react';
-import { ImagePlus, X, ZoomIn, Move, RotateCcw } from 'lucide-react';
-import { LabelData, defaultImageAdjustment } from '@/types/label';
+import { ImagePlus, X, ZoomIn, Move, RotateCcw, Sparkles } from 'lucide-react';
+import { LabelData, defaultImageAdjustment, imageFilters, ImageFilter } from '@/types/label';
 
 interface InputFormProps {
   data: LabelData;
@@ -139,6 +139,29 @@ export default function InputForm({ data, onChange }: InputFormProps) {
                 <span className="text-xs text-stone-400 w-10 text-right">
                   {data.imageAdjustment.offsetY > 0 ? '+' : ''}{data.imageAdjustment.offsetY}%
                 </span>
+              </div>
+            </div>
+
+            {/* 画像フィルター */}
+            <div className="bg-stone-50 rounded-lg p-3 space-y-3">
+              <div className="flex items-center gap-2">
+                <Sparkles size={14} className="text-amber-500" />
+                <span className="text-xs font-medium text-stone-600">古写真風フィルター</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {imageFilters.map((filter) => (
+                  <button
+                    key={filter.id}
+                    onClick={() => onChange({ ...data, imageFilter: filter.id })}
+                    className={`px-3 py-2 text-xs rounded-lg border transition-all ${
+                      data.imageFilter === filter.id
+                        ? 'bg-amber-100 border-amber-400 text-amber-800'
+                        : 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'
+                    }`}
+                  >
+                    {filter.name}
+                  </button>
+                ))}
               </div>
             </div>
           </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { forwardRef, useCallback, useRef, useState } from 'react';
-import { LabelData } from '@/types/label';
+import { LabelData, imageFilters } from '@/types/label';
 import { Hand } from 'lucide-react';
 
 interface MuseumLabelProps {
@@ -294,6 +294,7 @@ const MuseumLabel = forwardRef<HTMLDivElement, MuseumLabelProps>(({ data, onChan
                             style={{
                               boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                               transform: `translate(${data.imageAdjustment.offsetX}%, ${data.imageAdjustment.offsetY}%) scale(${data.imageAdjustment.scale})`,
+                              filter: imageFilters.find(f => f.id === data.imageFilter)?.css || 'none',
                             }}
                             draggable={false}
                           />

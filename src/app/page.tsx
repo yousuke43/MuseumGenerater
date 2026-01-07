@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback } from 'react';
-import { RotateCcw, Maximize2 } from 'lucide-react';
+import { RotateCcw, Maximize2, X } from 'lucide-react';
 import InputForm from '@/components/InputForm';
 import MuseumLabel from '@/components/MuseumLabel';
 import { LabelData, defaultLabelData } from '@/types/label';
@@ -10,33 +10,30 @@ export default function Home() {
   const [data, setData] = useState<LabelData>(defaultLabelData);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const labelRef = useRef<HTMLDivElement>(null);
-  const fullscreenContainerRef = useRef<HTMLDivElement>(null);
 
-  // 全画面表示
-  const handleFullscreen = useCallback(async () => {
-    if (!fullscreenContainerRef.current) return;
-    
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-      } else {
-        await fullscreenContainerRef.current.requestFullscreen();
-        setIsFullscreen(true);
-      }
-    } catch (error) {
-      console.error('Fullscreen failed:', error);
-      alert('全画面表示に失敗しました');
-    }
+  // 全画面表示（モーダル方式 - モバイル対応）
+  const handleFullscreen = useCallback(() => {
+    setIsFullscreen(true);
+    // スクロールを無効化
+    document.body.style.overflow = 'hidden';
   }, []);
 
-  // 全画面終了を監視
+  // 全画面終了
+  const handleExitFullscreen = useCallback(() => {
+    setIsFullscreen(false);
+    document.body.style.overflow = '';
+  }, []);
+
+  // ESCキーで終了
   React.useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        handleExitFullscreen();
+      }
     };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen, handleExitFullscreen]);
 
   // リセット
   const handleReset = useCallback(() => {
@@ -105,31 +102,61 @@ export default function Home() {
                 </span>
               </div>
               
-              {/* 全画面表示用コンテナ */}
-              <div 
-                ref={fullscreenContainerRef}
-                className={`rounded-lg overflow-hidden shadow-lg ${isFullscreen ? 'flex items-center justify-center bg-stone-800' : ''}`}
-              >
-                {/* 全画面時の案内 */}
-                {isFullscreen && (
-                  <div className="absolute top-4 left-0 right-0 text-center z-50 pointer-events-none">
-                    <p className="inline-block bg-black/70 text-white text-sm px-4 py-2 rounded-full">
-                      スクリーンショットで保存してください（ESCで終了）
-                    </p>
-                  </div>
-                )}
-                
+              {/* 通常のプレビュー */}
+              <div className="rounded-lg overflow-hidden shadow-lg">
                 <MuseumLabel 
                   ref={labelRef} 
                   data={data} 
-                  onChange={isFullscreen ? undefined : setData}
-                  isExporting={isFullscreen}
+                  onChange={setData}
+                  isExporting={false}
                 />
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* 全画面モーダル（モバイル対応） */}
+      {isFullscreen && (
+        <div 
+          className="fixed inset-0 z-[100] bg-stone-900 flex flex-col"
+          onClick={handleExitFullscreen}
+        >
+          {/* 上部：案内と閉じるボタン */}
+          <div className="flex-shrink-0 p-4 flex items-center justify-between">
+            <p className="text-white text-sm">
+              スクリーンショットで保存してください
+            </p>
+            <button
+              onClick={handleExitFullscreen}
+              className="p-2 text-white/80 hover:text-white transition-colors"
+              aria-label="閉じる"
+            >
+              <X size={24} />
+            </button>
+          </div>
+          
+          {/* 中央：プレビュー */}
+          <div 
+            className="flex-1 overflow-auto flex items-center justify-center p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="max-w-full max-h-full">
+              <MuseumLabel 
+                data={data} 
+                isExporting={true}
+              />
+            </div>
+          </div>
+          
+          {/* 下部：タップで閉じるヒント */}
+          <div className="flex-shrink-0 p-4 text-center">
+            <p className="text-white/60 text-xs">
+              画面をタップして戻る
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* フッター */}
       <footer className="bg-white border-t border-stone-200 py-4">
