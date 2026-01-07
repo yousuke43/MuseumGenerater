@@ -148,22 +148,25 @@ const MuseumLabel = forwardRef<HTMLDivElement, MuseumLabelProps>(({ data }, ref)
                     >
                       {/* マット（余白）- ベルベット風 */}
                       <div 
-                        className="relative p-2 md:p-3 overflow-hidden"
+                        className="relative p-2 md:p-3"
                         style={{
                           background: 'linear-gradient(145deg, #f5f5f0 0%, #e8e6e0 100%)',
                           boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.15)',
                         }}
                       >
-                        {/* 画像本体 */}
-                        <img
-                          src={data.image}
-                          alt={data.title || '作品画像'}
-                          className="w-full h-auto object-cover max-h-72 md:max-h-96 block relative z-10"
-                          style={{
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                            transform: `scale(${data.imageAdjustment.scale}) translate(${data.imageAdjustment.offsetX}%, ${data.imageAdjustment.offsetY}%)`,
-                          }}
-                        />
+                        {/* 画像本体 - clipで切り取り */}
+                        <div className="relative w-full overflow-hidden" style={{ maxHeight: '24rem' }}>
+                          <img
+                            src={data.image}
+                            alt={data.title || '作品画像'}
+                            className="w-full h-auto block"
+                            style={{
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                              transform: `scale(${data.imageAdjustment.scale})`,
+                              transformOrigin: `${50 - data.imageAdjustment.offsetX}% ${50 - data.imageAdjustment.offsetY}%`,
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>

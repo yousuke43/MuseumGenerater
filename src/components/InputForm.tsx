@@ -105,14 +105,15 @@ export default function InputForm({ data, onChange }: InputFormProps) {
     e.preventDefault(); // スクロール防止
     
     if (e.touches.length === 1 && touchState.isDragging) {
-      // ドラッグ移動
+      // ドラッグ移動（transform-origin方式なので符号を反転）
       const touch = e.touches[0];
       const container = imageContainerRef.current;
       if (!container) return;
 
       const rect = container.getBoundingClientRect();
-      const deltaX = ((touch.clientX - touchState.startX) / rect.width) * 100;
-      const deltaY = ((touch.clientY - touchState.startY) / rect.height) * 100;
+      // ドラッグ方向と同じ方向に画像が動くように符号を反転
+      const deltaX = -((touch.clientX - touchState.startX) / rect.width) * 100;
+      const deltaY = -((touch.clientY - touchState.startY) / rect.height) * 100;
 
       const newOffsetX = Math.max(-30, Math.min(30, touchState.startOffsetX + deltaX));
       const newOffsetY = Math.max(-30, Math.min(30, touchState.startOffsetY + deltaY));
@@ -161,28 +162,53 @@ export default function InputForm({ data, onChange }: InputFormProps) {
         <label className="label-text">作品画像</label>
         {data.image ? (
           <div className="space-y-3">
+            {/* 額縁風プレビュー - 実際の見た目を再現 */}
             <div className="relative group">
-              {/* タッチ操作可能な画像エリア */}
+              {/* 額縁外枠 */}
               <div 
-                ref={imageContainerRef}
-                className="w-full h-48 overflow-hidden rounded-lg border border-stone-200 touch-none cursor-grab active:cursor-grabbing"
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
+                className="p-3 rounded-sm"
+                style={{
+                  background: 'linear-gradient(145deg, #8B5A2B 0%, #654321 50%, #4A3520 100%)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                }}
               >
-                <img
-                  src={data.image}
-                  alt="作品プレビュー"
-                  className="w-full h-full object-cover pointer-events-none select-none"
+                {/* 額縁内側 */}
+                <div
+                  className="p-1"
                   style={{
-                    transform: `scale(${data.imageAdjustment.scale}) translate(${data.imageAdjustment.offsetX}%, ${data.imageAdjustment.offsetY}%)`,
+                    background: 'linear-gradient(145deg, #5D3A1A 0%, #4A2C0F 50%, #3D2409 100%)',
                   }}
-                  draggable={false}
-                />
+                >
+                  {/* マット */}
+                  <div 
+                    ref={imageContainerRef}
+                    className="relative p-2 touch-none cursor-grab active:cursor-grabbing"
+                    style={{
+                      background: 'linear-gradient(145deg, #f5f5f0 0%, #e8e6e0 100%)',
+                    }}
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                  >
+                    {/* 画像本体 */}
+                    <div className="relative w-full h-40 overflow-hidden">
+                      <img
+                        src={data.image}
+                        alt="作品プレビュー"
+                        className="w-full h-full object-cover pointer-events-none select-none"
+                        style={{
+                          transform: `scale(${data.imageAdjustment.scale})`,
+                          transformOrigin: `${50 - data.imageAdjustment.offsetX}% ${50 - data.imageAdjustment.offsetY}%`,
+                        }}
+                        draggable={false}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
               
               {/* タッチ操作ヒント（モバイル用） */}
-              <div className="absolute bottom-2 left-2 right-12 md:hidden">
+              <div className="absolute bottom-4 left-4 right-14 md:hidden">
                 <div className="flex items-center gap-1.5 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
                   <Hand size={12} />
                   <span>ドラッグで移動・ピンチで拡大</span>
@@ -191,9 +217,9 @@ export default function InputForm({ data, onChange }: InputFormProps) {
 
               <button
                 onClick={handleRemoveImage}
-                className="absolute top-2 right-2 p-2 bg-white/90 rounded-full shadow-md 
+                className="absolute top-1 right-1 p-2 bg-white/90 rounded-full shadow-md 
                          opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200
-                         hover:bg-red-50 hover:text-red-600"
+                         hover:bg-red-50 hover:text-red-600 z-10"
                 aria-label="画像を削除"
               >
                 <X size={16} />
