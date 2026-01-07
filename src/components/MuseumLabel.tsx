@@ -221,48 +221,38 @@ const MuseumLabel = forwardRef<HTMLDivElement, MuseumLabelProps>(({ data }, ref)
               <CornerDecoration position="bottom-right" />
 
               {/* コンテンツエリア */}
-              <div className="relative z-10 flex flex-col md:flex-row">
-                {/* 左側：作品情報 */}
-                {hasInfo && (
-                  <div className="px-5 py-4 md:px-6 md:py-5 md:border-r border-stone-200/60 flex items-center">
-                    <div className="space-y-1 text-center w-full">
-                      {/* 作品名 */}
-                      <h1 className="font-serif text-base md:text-lg font-semibold text-stone-1000 
-                                    tracking-wide leading-tight">
-                        {data.title || '無題'}
-                      </h1>
+              <div className="relative z-10 flex flex-row min-h-[60px]">
+                {/* 左側：作品情報（常に50%） */}
+                <div className="w-1/2 px-4 py-3 border-r border-stone-200/60 flex items-center justify-center">
+                  <div className="space-y-0.5 text-center w-full">
+                    {/* 作品名 */}
+                    <h1 className="font-serif text-sm font-semibold text-stone-800 
+                                  tracking-wide leading-tight line-clamp-2">
+                      {data.title || '無題'}
+                    </h1>
 
-                      {/* 作者 */}
-                      {data.author && (
-                        <p className="text-stone-600 text-xs md:text-sm">
-                          {data.author}
-                        </p>
-                      )}
+                    {/* 作者 */}
+                    {data.author && (
+                      <p className="text-stone-600 text-xs truncate">
+                        {data.author}
+                      </p>
+                    )}
 
-                      {/* 制作年 */}
-                      {data.year && (
-                        <p className="text-stone-400 text-xs">
-                          {data.year}
-                        </p>
-                      )}
-                    </div>
+                    {/* 制作年 */}
+                    {data.year && (
+                      <p className="text-stone-400 text-xs">
+                        {data.year}
+                      </p>
+                    )}
                   </div>
-                )}
+                </div>
 
-                {/* 中央の区切り線（モバイル用） */}
-                {hasInfo && data.description && (
-                  <div className="md:hidden mx-5 border-t border-stone-200/60" />
-                )}
-
-                {/* 右側：説明文 */}
-                {data.description && (
-                  <div className="px-5 py-4 md:px-6 md:py-5 max-w-xs">
-                    <p className="text-stone-500 text-xs md:text-sm leading-relaxed 
-                                whitespace-pre-wrap">
-                      {data.description}
-                    </p>
-                  </div>
-                )}
+                {/* 右側：説明文（常に50%） */}
+                <div className="w-1/2 px-4 py-3 flex items-center">
+                  <p className="text-stone-500 text-xs leading-relaxed line-clamp-4">
+                    {data.description || ''}
+                  </p>
+                </div>
               </div>
 
               {/* プレート下部のシャドウ（厚み感） */}
