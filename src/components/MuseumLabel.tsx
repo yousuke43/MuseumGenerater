@@ -159,7 +159,6 @@ const MuseumLabel = forwardRef<HTMLDivElement, MuseumLabelProps>(({ data }, ref)
                           src={data.image}
                           alt={data.title || '作品画像'}
                           className="w-full h-auto object-contain max-h-72 md:max-h-96 block relative z-10"
-                          crossOrigin="anonymous"
                           style={{
                             boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                           }}
